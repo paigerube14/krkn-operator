@@ -61,7 +61,7 @@ func (h *Handler) CreateElasticsearchConfig(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if err := elasticsearch.ValidateCreateRequest(&req); err != nil {
+	if err := validateCreateElasticsearchConfigRequest(&req); err != nil {
 		writeJSONError(w, http.StatusBadRequest, ErrorResponse{
 			Error:   "bad_request",
 			Message: err.Error(),
@@ -69,16 +69,7 @@ func (h *Handler) CreateElasticsearchConfig(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	exists, err := h.elasticsearchConfigExists(ctx, req.Name)
-	if err != nil {
-		logger.Error(err, "Failed to check for existing elasticsearch config", "name", req.Name)
-		writeJSONError(w, http.StatusInternalServerError, ErrorResponse{
-			Error:   "internal_error",
-			Message: "Failed to check for existing Elasticsearch config",
-		})
-		return
-	}
-	if exists {
+	if h.elasticsearchConfigExists(ctx, req.Name) {
 		writeJSONError(w, http.StatusBadRequest, ErrorResponse{
 			Error:   "bad_request",
 			Message: fmt.Sprintf("Elasticsearch config '%s' already exists", req.Name),
