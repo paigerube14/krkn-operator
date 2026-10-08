@@ -242,11 +242,12 @@ func (h *Handler) GetGraphRunConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	payload := GraphRunCreateRequest{
-		Graph:           graphRun.Spec.Graph,
-		TargetRequestID: graphRun.Spec.TargetRequestID,
-		TargetClusters:  graphRun.Spec.TargetClusters,
-		MaxRetries:      intPtr(graphRun.Spec.MaxRetries),
-		Categories:      categories,
+		Graph:              graphRun.Spec.Graph,
+		TargetRequestID:    graphRun.Spec.TargetRequestID,
+		TargetClusters:     graphRun.Spec.TargetClusters,
+		CloudCredentialRef: graphRun.Spec.CloudCredentialRef,
+		MaxRetries:         intPtr(graphRun.Spec.MaxRetries),
+		Categories:         categories,
 	}
 
 	logger.Info("Graph run config retrieved successfully",

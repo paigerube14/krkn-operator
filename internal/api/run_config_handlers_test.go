@@ -58,7 +58,8 @@ func TestGetScenarioRunConfig_Success(t *testing.T) {
 			Environment: map[string]string{
 				"EXIT_STATUS": "0",
 			},
-			KubeconfigPath: "/home/krkn/.kube/config",
+			KubeconfigPath:     "/home/krkn/.kube/config",
+			CloudCredentialRef: "aws-ci",
 			Files: []krknv1alpha1.FileMount{
 				{
 					Name:      "config.yaml",
@@ -113,6 +114,7 @@ func TestGetScenarioRunConfig_Success(t *testing.T) {
 	assert.Equal(t, map[string][]string{"krkn-operator": {"cluster1", "cluster2"}}, payload.TargetClusters)
 	assert.Equal(t, map[string]string{"EXIT_STATUS": "0"}, payload.Environment)
 	assert.Equal(t, "/home/krkn/.kube/config", payload.KubeconfigPath)
+	assert.Equal(t, "aws-ci", payload.CloudCredentialRef)
 
 	require.Len(t, payload.FileReferences, 1)
 	assert.Equal(t, "file-uuid-001", payload.FileReferences[0].FileID)
@@ -298,8 +300,9 @@ func TestGetGraphRunConfig_Success(t *testing.T) {
 			TargetClusters: map[string][]string{
 				"krkn-operator": {"cluster1"},
 			},
-			MaxRetries:  0,
-			OwnerUserID: "owner@test.com",
+			MaxRetries:         0,
+			CloudCredentialRef: "aws-ci",
+			OwnerUserID:        "owner@test.com",
 		},
 	}
 	category := runCategoryFixture("resilience", "")
@@ -337,6 +340,7 @@ func TestGetGraphRunConfig_Success(t *testing.T) {
 	assert.Equal(t, map[string][]string{"krkn-operator": {"cluster1"}}, payload.TargetClusters)
 	require.NotNil(t, payload.MaxRetries)
 	assert.Equal(t, 0, *payload.MaxRetries)
+	assert.Equal(t, "aws-ci", payload.CloudCredentialRef)
 
 	require.Len(t, payload.Graph, 2)
 	assert.Equal(t, "scenario-a", payload.Graph["node-1"].Scenario.Name)

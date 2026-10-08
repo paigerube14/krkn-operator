@@ -242,9 +242,10 @@ func (h *Handler) reconstructScenarioRunPayload(ctx context.Context, scenarioRun
 		ScenarioImage: scenarioRunImage(scenarioRun.Status.ClusterJobs),
 
 		// Optional fields
-		Environment:    scenarioRun.Spec.Environment,
-		KubeconfigPath: scenarioRun.Spec.KubeconfigPath,
-		MaxRetries:     intPtr(scenarioRun.Spec.MaxRetries),
+		Environment:        scenarioRun.Spec.Environment,
+		KubeconfigPath:     scenarioRun.Spec.KubeconfigPath,
+		MaxRetries:         intPtr(scenarioRun.Spec.MaxRetries),
+		CloudCredentialRef: scenarioRun.Spec.CloudCredentialRef,
 	}
 
 	// Reconstruct FileReferences from saved files
