@@ -40,6 +40,7 @@ import (
 	krknv1alpha1 "github.com/krkn-chaos/krkn-operator/api/v1alpha1"
 	"github.com/krkn-chaos/krkn-operator/pkg/graph"
 	krknctlconfig "github.com/krkn-chaos/krknctl/pkg/config"
+	krknctlmodels "github.com/krkn-chaos/krknctl/pkg/provider/models"
 	"github.com/krkn-chaos/krknctl/pkg/verify"
 )
 
@@ -332,6 +333,15 @@ func (r *KrknGraphRunReconciler) resolveGraph(ctx context.Context, graphRun *krk
 		if strings.HasPrefix(nodeID, "_") {
 			continue
 		}
+		if node.NodeType != "" && node.NodeType != "scenario" && node.NodeType != "trigger" {
+			return fmt.Errorf("node '%s' has unsupported nodeType %q", nodeID, node.NodeType)
+		}
+		if node.NodeType == "trigger" {
+			if node.Scenario.Name != "trigger" || node.Scenario.Private == nil || *node.Scenario.Private || node.Scenario.RegistryName != "" {
+				return fmt.Errorf("node '%s' trigger node must use public scenario identity 'trigger'", nodeID)
+			}
+			continue
+		}
 		if err := node.Scenario.Validate(); err != nil {
 			return fmt.Errorf("node '%s' has invalid scenario reference: %w", nodeID, err)
 		}
@@ -357,9 +367,13 @@ func (r *KrknGraphRunReconciler) resolveGraph(ctx context.Context, graphRun *krk
 			dependsOn = []string{*node.DependsOn}
 		}
 
+		nodeName := node.Scenario.Name
+		if node.NodeType == "trigger" {
+			nodeName = "Wait for Trigger"
+		}
 		nodeStatuses = append(nodeStatuses, krknv1alpha1.NodeStatus{
 			NodeID:    nodeID,
-			NodeName:  node.Scenario.Name,
+			NodeName:  nodeName,
 			Phase:     "Pending",
 			DependsOn: dependsOn,
 		})
@@ -527,17 +541,23 @@ func (r *KrknGraphRunReconciler) createScenarioRun(
 	if err != nil {
 		return false, fmt.Errorf("failed to load krknctl config: %w", err)
 	}
-	privateRegistry, err := resolvePrivateRegistry(ctx, r.Client, graphRun.Namespace, node.Scenario)
-	if err != nil {
-		return false, err
-	}
-	resolver := r.imageResolver
-	if resolver == nil {
-		resolver = resolveImmutableImage
-	}
-	image, err := resolver(ctx, &krknctlCfg, node.Scenario, privateRegistry)
-	if err != nil {
-		return false, fmt.Errorf("failed to resolve scenario image: %w", err)
+	var privateRegistry *krknctlmodels.RegistryV2
+	var image string
+	if node.NodeType == "trigger" {
+		image = TriggerNodeImage
+	} else {
+		privateRegistry, err = resolvePrivateRegistry(ctx, r.Client, graphRun.Namespace, node.Scenario)
+		if err != nil {
+			return false, err
+		}
+		resolver := r.imageResolver
+		if resolver == nil {
+			resolver = resolveImmutableImage
+		}
+		image, err = resolver(ctx, &krknctlCfg, node.Scenario, privateRegistry)
+		if err != nil {
+			return false, fmt.Errorf("failed to resolve scenario image: %w", err)
+		}
 	}
 	verifier := r.signatureVerifier
 	if verifier == nil {

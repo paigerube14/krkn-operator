@@ -365,6 +365,14 @@ func (h *Handler) CreateGraphRun(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		normalizeLegacyGraphScenarioNode(&node)
+		if node.NodeType != "" && node.NodeType != "scenario" && node.NodeType != "trigger" {
+			writeJSONError(w, http.StatusBadRequest, ErrorResponse{Error: "bad_request", Message: fmt.Sprintf("Unsupported nodeType %q for node '%s'", node.NodeType, nodeID)})
+			return
+		}
+		if node.NodeType == "trigger" && (node.Scenario.Name != "trigger" || node.Scenario.Private == nil || *node.Scenario.Private || node.Scenario.RegistryName != "") {
+			writeJSONError(w, http.StatusBadRequest, ErrorResponse{Error: "bad_request", Message: fmt.Sprintf("Trigger node '%s' must use public scenario identity 'trigger'", nodeID)})
+			return
+		}
 		if err := node.Scenario.Validate(); err != nil {
 			writeJSONError(w, http.StatusBadRequest, ErrorResponse{
 				Error:   "bad_request",
@@ -372,7 +380,7 @@ func (h *Handler) CreateGraphRun(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		if *node.Scenario.Private {
+		if node.NodeType != "trigger" && *node.Scenario.Private {
 			secret, err := h.loadRegistrySecret(ctx, node.Scenario.RegistryName)
 			if err != nil {
 				writeJSONError(w, http.StatusNotFound, ErrorResponse{

@@ -59,6 +59,11 @@ type GraphScenario struct {
 // GraphScenarioNode represents a node in the scenario dependency graph
 // This mirrors krknctl's ScenarioNode struct but with explicit JSON tags for Kubernetes compatibility
 type GraphScenarioNode struct {
+	// NodeType selects a built-in non-scenario graph node implementation.
+	// +optional
+	// +kubebuilder:validation:Enum=scenario;trigger
+	NodeType string `json:"nodeType,omitempty"`
+
 	// Comment is an optional comment describing the scenario
 	// +optional
 	Comment string `json:"_comment,omitempty"`

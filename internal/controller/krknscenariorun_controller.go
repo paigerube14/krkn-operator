@@ -642,23 +642,28 @@ func (r *KrknScenarioRunReconciler) prepareJobResources(
 	// Resolve the image exclusively from the scenario reference. Graph runs use
 	// this same path; no caller-provided image is trusted.
 	var privateRegistry *krknctlmodels.RegistryV2
-	if scenarioRun.Spec.Scenario.Private == nil {
-		cleanup()
-		return nil, fmt.Errorf("scenario.private is required")
-	}
-	privateRegistry, err = resolvePrivateRegistry(ctx, r.Client, scenarioRun.Namespace, scenarioRun.Spec.Scenario)
-	if err != nil {
-		cleanup()
-		return nil, err
-	}
-	resolver := r.imageResolver
-	if resolver == nil {
-		resolver = resolveImmutableImage
-	}
-	containerImage, err := resolver(ctx, &krknctlCfg, scenarioRun.Spec.Scenario, privateRegistry)
-	if err != nil {
-		cleanup()
-		return nil, fmt.Errorf("failed to resolve scenario image: %w", err)
+	var containerImage string
+	if scenarioRun.Spec.NodeType == "trigger" {
+		containerImage = TriggerNodeImage
+	} else {
+		if scenarioRun.Spec.Scenario.Private == nil {
+			cleanup()
+			return nil, fmt.Errorf("scenario.private is required")
+		}
+		privateRegistry, err = resolvePrivateRegistry(ctx, r.Client, scenarioRun.Namespace, scenarioRun.Spec.Scenario)
+		if err != nil {
+			cleanup()
+			return nil, err
+		}
+		resolver := r.imageResolver
+		if resolver == nil {
+			resolver = resolveImmutableImage
+		}
+		containerImage, err = resolver(ctx, &krknctlCfg, scenarioRun.Spec.Scenario, privateRegistry)
+		if err != nil {
+			cleanup()
+			return nil, fmt.Errorf("failed to resolve scenario image: %w", err)
+		}
 	}
 	verifier := r.signatureVerifier
 	if verifier == nil {
